@@ -47,6 +47,24 @@ async function run() {
     const userCollection = client.db("doctors_portal").collection("users");
     const doctorCollection = client.db("doctors_portal").collection("doctors");
 
+    const verifiAdmin = async (req, res, next)=>{
+      const requester = req.decode.email;
+      const requesterAccount = await userCollection.findOne({email:requester})
+      if(requesterAccount.role === 'admin'){
+        next();
+      }
+      else{
+        res.status(403).send({message:'forbidden'});
+      }
+    }
+
+
+
+
+
+
+
+
     app.get("/service", async (req, res) => {
       const query = {};
       const cursor = serviceCollection.find(query).project({name : 1});
@@ -84,21 +102,14 @@ async function run() {
 
     // User Make  Admin 
 
-    app.put('/user/admin/:email', verifiJWT, async(req, res)=>{
+    app.put('/user/admin/:email', verifiJWT, verifiAdmin, async(req, res)=>{
       const email = req.params.email;
-      const requester = req.decode.email;
-      const requesterAccount = await userCollection.findOne({email:requester})
-      if(requesterAccount.role === 'admin'){
         const filter ={email:email};
       const updateDoc = {
         $set:{role:'admin'},
       };
       const result = await userCollection.updateOne(filter, updateDoc);
       res.send(result);
-      }
-      else{
-        res.status(403).send({message:'forbidden'});
-      }
       
     })
 
@@ -169,10 +180,30 @@ async function run() {
 
 
 
+    //Manage Doctor
+    // app.get('/doctor', verifiAdmin, verifiJWT, async (req,res)=>{
+    //   const doctors = await doctorCollection.find().toArray();
+    //   res.send(doctors)
+    // })
+
+    app.get('/doctor', verifiJWT, verifiAdmin, async (req, res) => {
+      const query = {};
+      const doctors = await doctorCollection.find(query).toArray();
+      res.send(doctors);
+  })
+
+
     // Addd Doctor
-    app.post('/doctor', async(req,res) =>{
+    app.post('/doctor', verifiJWT, verifiAdmin, async(req,res) =>{
       const doctor = req.body;
       const result = await doctorCollection.insertOne(doctor);
+      res.send(result)
+    })
+    // Delete Doctor
+    app.delete('/doctor/:email', verifiJWT, verifiAdmin, async(req,res) =>{
+      const email = req.params.email;
+      const filter={email:email}
+      const result = await doctorCollection.deleteOne(filter)
       res.send(result)
     })
 
