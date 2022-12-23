@@ -205,9 +205,8 @@ async function run() {
       const filter={email:email}
       const result = await doctorCollection.deleteOne(filter)
       res.send(result)
+      // console.log(object);
     })
-
-
 
 
 
